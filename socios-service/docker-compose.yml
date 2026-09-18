@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: socios-service-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: socios_db
+    # Puerto host 5544 -> evita choques con 5432 (denuncias-app) y con
+    # cualquier otra cosa que ya esté usando 5433 en esta máquina
+    ports:
+      - "5544:5432"
+    volumes:
+      - socios_service_pgdata:/var/lib/postgresql/data
+    networks:
+      - socios-service-net
+
+networks:
+  socios-service-net:
+    driver: bridge
+
+volumes:
+  socios_service_pgdata:
