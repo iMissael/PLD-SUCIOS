@@ -15,7 +15,7 @@ const CAMPOS_SOCIO = [
   ['tiempoConstitucion', 'Tiempo de constitución (años)'],
   ['experienciaActividad', 'Experiencia en su actividad (años)'],
   ['actividadEconomica', 'Actividad económica'],
-  ['domicilio', 'Domicilio'],
+  ['domicilio', 'Domicilio', formatearDomicilio],
   ['telefono', 'Teléfono'],
   ['email', 'Email'],
   ['fechaAlta', 'Fecha de alta'],
@@ -25,6 +25,20 @@ const CAMPOS_SOCIO = [
   ['origenRecursos', 'Origen de recursos'],
   ['destinoRecursos', 'Destino de recursos'],
 ];
+
+function formatearDomicilio(d) {
+  if (!d) return null;
+  const numero = [d.numeroExterior, d.numeroInterior && `Int. ${d.numeroInterior}`].filter(Boolean).join(' ');
+  const partes = [
+    [d.calle, numero].filter(Boolean).join(' '),
+    d.colonia && `Col. ${d.colonia}`,
+    d.codigoPostal && `C.P. ${d.codigoPostal}`,
+    d.municipio,
+    d.entidad,
+    d.pais,
+  ].filter(Boolean);
+  return partes.join(', ');
+}
 
 function valorMostrable(valor) {
   if (valor === null || valor === undefined || valor === '') return '—';
@@ -160,10 +174,10 @@ export default function Home() {
                           <h3 style={{ marginTop: 0 }}>Datos completos del socio</h3>
                           <table cellPadding="4">
                             <tbody>
-                              {CAMPOS_SOCIO.map(([campo, etiqueta]) => (
+                              {CAMPOS_SOCIO.map(([campo, etiqueta, formatear]) => (
                                 <tr key={campo}>
                                   <td style={{ fontWeight: 'bold', verticalAlign: 'top' }}>{etiqueta}</td>
-                                  <td>{valorMostrable(s[campo])}</td>
+                                  <td>{valorMostrable(formatear ? formatear(s[campo]) : s[campo])}</td>
                                 </tr>
                               ))}
                             </tbody>

@@ -100,10 +100,11 @@ autenticados pueden ver/crear/editar socios y personas relacionadas.
 
 ## Estructura del dominio
 
-- **usuarios**: quienes consultan (rol `ADMIN`, `ANALISTA` o `CONSULTA`).
+- **usuarios**: los empleados que consultan (rol `ADMIN`, `ANALISTA` o
+  `CONSULTA`), con CURP y domicilio.
 - **socios**: los clientes consultados (persona física o moral), con datos
   PLD como zona geográfica, nivel de riesgo, PEP, actividad económica,
-  origen/destino de recursos, etc.
+  origen/destino de recursos, domicilio desglosado, etc.
 - **personas_relacionadas**: personas ligadas a un socio (`AVAL`, `CONYUGE`,
   `REPRESENTANTE_LEGAL`, `BENEFICIARIO_CONTROLADOR`, `REFERENCIA`).
 
@@ -116,4 +117,6 @@ Más detalle técnico de cada parte en `socios-service/README.md` y
   ejemplo son solo valores de desarrollo local — cámbialos si esto llegara
   a usarse fuera de pruebas.
 - `pnpm run seed:data` es seguro de re-ejecutar: si ya hay socios en la
-  base, no duplica nada.
+  base, no duplica nada. Si sembraste antes de la migración de domicilio/CURP,
+  tus datos tienen CURPs inválidas; para regenerarlos borra la base con
+  `docker compose down -v` y repite los pasos de la sección 2.

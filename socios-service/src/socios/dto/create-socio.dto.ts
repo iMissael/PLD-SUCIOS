@@ -7,8 +7,12 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { EstatusSocio, NivelRiesgo, TipoPersona } from '../entities/socio.entity';
+import { DomicilioDto } from '../../common/domicilio/domicilio.dto';
+import { IsCurp } from '../../common/curp/is-curp.decorator';
 
 export class CreateSocioDto {
   @IsEnum(TipoPersona)
@@ -30,7 +34,7 @@ export class CreateSocioDto {
   rfc?: string;
 
   @IsOptional()
-  @IsString()
+  @IsCurp()
   curp?: string;
 
   @IsOptional()
@@ -84,8 +88,9 @@ export class CreateSocioDto {
   destinoRecursos?: string;
 
   @IsOptional()
-  @IsString()
-  domicilio?: string;
+  @ValidateNested()
+  @Type(() => DomicilioDto)
+  domicilio?: DomicilioDto;
 
   @IsOptional()
   @IsString()

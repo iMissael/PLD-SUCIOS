@@ -7,6 +7,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { PersonaRelacionada } from '../../personas-relacionadas/entities/persona-relacionada.entity';
+import { Domicilio } from '../../common/domicilio/domicilio.embedded';
 
 export enum TipoPersona {
   FISICA = 'FISICA',
@@ -87,8 +88,8 @@ export class Socio {
   @Column({ name: 'destino_recursos', type: 'text', nullable: true })
   destinoRecursos?: string;
 
-  @Column({ nullable: true })
-  domicilio?: string;
+  @Column(() => Domicilio, { prefix: false })
+  domicilio: Domicilio;
 
   @Column({ nullable: true })
   telefono?: string;

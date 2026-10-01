@@ -7,6 +7,7 @@ import {
   PersonaRelacionada,
   TipoRelacion,
 } from '../personas-relacionadas/entities/persona-relacionada.entity';
+import { digitoVerificadorCurp } from '../common/curp/curp';
 
 config();
 
@@ -29,10 +30,86 @@ function fakeRfc(nombre: string, apellido: string, idx: number): string {
   return `${letras}${String(800000 + idx).padStart(6, '0')}XX${idx % 10}`;
 }
 
-function fakeCurp(nombre: string, apellido: string, idx: number): string {
-  const letras = (apellido[0] + nombre[0] + apellido[1] + nombre[1]).toUpperCase();
-  return `${letras}${String(900000 + idx).padStart(6, '0')}HDFXXX0${idx % 10}`;
+const CLAVE_ENTIDAD_CURP: Record<string, string> = {
+  'Ciudad de México': 'DF',
+  Jalisco: 'JC',
+  'Nuevo León': 'NL',
+  Puebla: 'PL',
+  Guanajuato: 'GT',
+  Yucatán: 'YN',
+  Sonora: 'SR',
+  Chiapas: 'CS',
+  Querétaro: 'QT',
+  Veracruz: 'VZ',
+};
+
+// Mayúsculas, sin acentos; la Ñ se sustituye por X como hace RENAPO.
+function normalizar(texto: string): string {
+  return texto
+    .toUpperCase()
+    .replace(/Ñ/g, 'X')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z ]/g, '');
 }
+
+function primeraInterna(palabra: string, patron: RegExp): string {
+  return palabra.slice(1).match(patron)?.[0] ?? 'X';
+}
+
+/**
+ * CURP con la estructura real (iniciales, fecha, sexo, entidad, consonantes
+ * internas, homoclave y dígito verificador correcto). Simplificada: no
+ * aplica la lista de palabras altisonantes ni partículas (DE, DEL, ...).
+ */
+function generarCurp(p: {
+  nombre: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
+  fechaNacimiento: string; // YYYY-MM-DD
+  sexo: 'H' | 'M';
+  entidad: string;
+}): string {
+  const paterno = normalizar(p.apellidoPaterno);
+  const materno = normalizar(p.apellidoMaterno ?? '');
+  // En nombres compuestos se ignoran JOSE y MARIA
+  const nombres = normalizar(p.nombre).split(' ').filter(Boolean);
+  const nombre =
+    nombres.length > 1 && ['JOSE', 'J', 'MARIA', 'MA'].includes(nombres[0]) ? nombres[1] : nombres[0];
+  const [anio, mes, dia] = p.fechaNacimiento.split('-');
+  const vocal = /[AEIOU]/;
+  const consonante = /[B-DF-HJ-NP-TV-Z]/;
+
+  const curp17 =
+    paterno[0] +
+    primeraInterna(paterno, vocal) +
+    (materno[0] ?? 'X') +
+    nombre[0] +
+    anio.slice(2) +
+    mes +
+    dia +
+    p.sexo +
+    CLAVE_ENTIDAD_CURP[p.entidad] +
+    primeraInterna(paterno, consonante) +
+    primeraInterna(materno, consonante) +
+    primeraInterna(nombre, consonante) +
+    (Number(anio) < 2000 ? '0' : 'A');
+
+  return curp17 + digitoVerificadorCurp(curp17);
+}
+
+const CODIGO_POSTAL_POR_ENTIDAD: Record<string, string> = {
+  'Ciudad de México': '03100',
+  Jalisco: '45100',
+  'Nuevo León': '66220',
+  Puebla: '72000',
+  Guanajuato: '37000',
+  Yucatán: '97000',
+  Sonora: '83000',
+  Chiapas: '29000',
+  Querétaro: '76000',
+  Veracruz: '91000',
+};
 
 async function run() {
   const dataSource = new DataSource({
@@ -61,12 +138,29 @@ async function run() {
     return;
   }
 
+  // Los usuarios son los empleados: llevan CURP y domicilio (salvo el admin genérico).
   const usuariosDef = [
     { nombre: 'Admin de pruebas', email: 'admin@socios-service.local', rol: RolUsuario.ADMIN, password: 'Admin123!' },
-    { nombre: 'Ana Torres', email: 'ana.torres@socios-service.local', rol: RolUsuario.ANALISTA, password: 'Analista123!' },
-    { nombre: 'Luis Fernández', email: 'luis.fernandez@socios-service.local', rol: RolUsuario.ANALISTA, password: 'Analista123!' },
-    { nombre: 'Karla Mendoza', email: 'karla.mendoza@socios-service.local', rol: RolUsuario.CONSULTA, password: 'Consulta123!' },
-    { nombre: 'Jorge Ramírez', email: 'jorge.ramirez@socios-service.local', rol: RolUsuario.CONSULTA, password: 'Consulta123!' },
+    {
+      nombre: 'Ana Torres', email: 'ana.torres@socios-service.local', rol: RolUsuario.ANALISTA, password: 'Analista123!',
+      curp: { nombre: 'Ana', apellidoPaterno: 'Torres', apellidoMaterno: 'Luna', fechaNacimiento: '1990-04-12', sexo: 'M' as const, entidad: 'Jalisco' },
+      domicilio: { calle: 'Av. Patria', numeroExterior: '1520', numeroInterior: '4B', colonia: 'Jardines Universidad', codigoPostal: '45110', municipio: 'Zapopan', entidad: 'Jalisco', pais: 'México' },
+    },
+    {
+      nombre: 'Luis Fernández', email: 'luis.fernandez@socios-service.local', rol: RolUsuario.ANALISTA, password: 'Analista123!',
+      curp: { nombre: 'Luis', apellidoPaterno: 'Fernández', apellidoMaterno: 'Ortega', fechaNacimiento: '1988-11-03', sexo: 'H' as const, entidad: 'Nuevo León' },
+      domicilio: { calle: 'Calzada del Valle', numeroExterior: '310', colonia: 'Del Valle', codigoPostal: '66220', municipio: 'San Pedro Garza García', entidad: 'Nuevo León', pais: 'México' },
+    },
+    {
+      nombre: 'Karla Mendoza', email: 'karla.mendoza@socios-service.local', rol: RolUsuario.CONSULTA, password: 'Consulta123!',
+      curp: { nombre: 'Karla', apellidoPaterno: 'Mendoza', apellidoMaterno: 'Ruiz', fechaNacimiento: '1995-07-21', sexo: 'M' as const, entidad: 'Puebla' },
+      domicilio: { calle: 'Calle 5 de Mayo', numeroExterior: '208', colonia: 'Centro', codigoPostal: '72000', municipio: 'Puebla', entidad: 'Puebla', pais: 'México' },
+    },
+    {
+      nombre: 'Jorge Ramírez', email: 'jorge.ramirez@socios-service.local', rol: RolUsuario.CONSULTA, password: 'Consulta123!',
+      curp: { nombre: 'Jorge', apellidoPaterno: 'Ramírez', apellidoMaterno: 'Soto', fechaNacimiento: '1985-02-28', sexo: 'H' as const, entidad: 'Ciudad de México' },
+      domicilio: { calle: 'Insurgentes Sur', numeroExterior: '1605', numeroInterior: '301', colonia: 'San José Insurgentes', codigoPostal: '03900', municipio: 'Benito Juárez', entidad: 'Ciudad de México', pais: 'México' },
+    },
   ];
 
   for (const u of usuariosDef) {
@@ -74,31 +168,38 @@ async function run() {
     if (existente) continue;
     const passwordHash = await bcrypt.hash(u.password, 10);
     await usuariosRepo.save(
-      usuariosRepo.create({ nombre: u.nombre, email: u.email, passwordHash, rol: u.rol }),
+      usuariosRepo.create({
+        nombre: u.nombre,
+        email: u.email,
+        passwordHash,
+        rol: u.rol,
+        curp: u.curp ? generarCurp(u.curp) : undefined,
+        domicilio: u.domicilio,
+      }),
     );
   }
   console.log(`Usuarios listos (${usuariosDef.length}):`);
   usuariosDef.forEach((u) => console.log(`  ${u.email} / ${u.password} (${u.rol})`));
 
   // --- Datos base para variar los socios ---
-  const nombresFisica: [string, string, string][] = [
-    ['María', 'González', 'Pérez'],
-    ['Juan', 'Ramírez', 'López'],
-    ['Sofía', 'Hernández', 'Torres'],
-    ['Carlos', 'Martínez', 'Sánchez'],
-    ['Laura', 'García', 'Flores'],
-    ['Miguel', 'Rodríguez', 'Cruz'],
-    ['Daniela', 'López', 'Morales'],
-    ['Fernando', 'Díaz', 'Reyes'],
-    ['Andrea', 'Vázquez', 'Jiménez'],
-    ['Ricardo', 'Ortiz', 'Gómez'],
-    ['Paola', 'Castillo', 'Vargas'],
-    ['Alejandro', 'Romero', 'Chávez'],
-    ['Valeria', 'Mendoza', 'Ríos'],
-    ['Emilio', 'Guzmán', 'Aguilar'],
-    ['Gabriela', 'Moreno', 'Salazar'],
-    ['Héctor', 'Núñez', 'Domínguez'],
-    ['Renata', 'Cabrera', 'Delgado'],
+  const nombresFisica: [string, string, string, 'H' | 'M'][] = [
+    ['María', 'González', 'Pérez', 'M'],
+    ['Juan', 'Ramírez', 'López', 'H'],
+    ['Sofía', 'Hernández', 'Torres', 'M'],
+    ['Carlos', 'Martínez', 'Sánchez', 'H'],
+    ['Laura', 'García', 'Flores', 'M'],
+    ['Miguel', 'Rodríguez', 'Cruz', 'H'],
+    ['Daniela', 'López', 'Morales', 'M'],
+    ['Fernando', 'Díaz', 'Reyes', 'H'],
+    ['Andrea', 'Vázquez', 'Jiménez', 'M'],
+    ['Ricardo', 'Ortiz', 'Gómez', 'H'],
+    ['Paola', 'Castillo', 'Vargas', 'M'],
+    ['Alejandro', 'Romero', 'Chávez', 'H'],
+    ['Valeria', 'Mendoza', 'Ríos', 'M'],
+    ['Emilio', 'Guzmán', 'Aguilar', 'H'],
+    ['Gabriela', 'Moreno', 'Salazar', 'M'],
+    ['Héctor', 'Núñez', 'Domínguez', 'H'],
+    ['Renata', 'Cabrera', 'Delgado', 'M'],
   ];
 
   const razonesSociales: string[] = [
@@ -150,9 +251,10 @@ async function run() {
   const socios: Socio[] = [];
 
   // 17 personas físicas
-  nombresFisica.forEach(([nombre, apellidoPaterno, apellidoMaterno], i) => {
+  nombresFisica.forEach(([nombre, apellidoPaterno, apellidoMaterno, sexo], i) => {
     const entidad = randomFrom(entidades, i);
     const esPep = i === 3 || i === 11; // un par marcados como PEP
+    const fechaNacimiento = `19${60 + (i % 35)}-0${(i % 9) + 1}-1${i % 9}`;
     socios.push(
       sociosRepo.create({
         tipoPersona: TipoPersona.FISICA,
@@ -160,8 +262,8 @@ async function run() {
         apellidoPaterno,
         apellidoMaterno,
         rfc: fakeRfc(nombre, apellidoPaterno, i),
-        curp: fakeCurp(nombre, apellidoPaterno, i),
-        fechaNacimiento: `19${60 + (i % 35)}-0${(i % 9) + 1}-1${i % 9}`,
+        curp: generarCurp({ nombre, apellidoPaterno, apellidoMaterno, fechaNacimiento, sexo, entidad }),
+        fechaNacimiento,
         nacionalidad: 'Mexicana',
         zonaGeografica: randomFrom(zonasGeograficas, i),
         pais: 'México',
@@ -169,7 +271,15 @@ async function run() {
         entidad,
         experienciaActividad: 1 + (i % 20),
         actividadEconomica: randomFrom(actividadesEconomicasFisica, i),
-        domicilio: `Calle ${10 + i} #${100 + i}, Col. Centro`,
+        domicilio: {
+          calle: `Calle ${10 + i}`,
+          numeroExterior: `${100 + i}`,
+          colonia: 'Centro',
+          codigoPostal: CODIGO_POSTAL_POR_ENTIDAD[entidad],
+          municipio: localidadesPorEntidad[entidad],
+          entidad,
+          pais: 'México',
+        },
         telefono: `55${String(10000000 + i * 137).slice(0, 8)}`,
         email: `${nombre.toLowerCase()}.${apellidoPaterno.toLowerCase()}@correo-prueba.com`,
         estatus: i % 9 === 0 ? EstatusSocio.INACTIVO : EstatusSocio.ACTIVO,
@@ -198,7 +308,15 @@ async function run() {
         entidad,
         tiempoConstitucion: 1 + (i % 25),
         actividadEconomica: randomFrom(actividadesEconomicasMoral, idx),
-        domicilio: `Av. Industria ${200 + i}, Parque Industrial`,
+        domicilio: {
+          calle: 'Av. Industria',
+          numeroExterior: `${200 + i}`,
+          colonia: 'Parque Industrial',
+          codigoPostal: CODIGO_POSTAL_POR_ENTIDAD[entidad],
+          municipio: localidadesPorEntidad[entidad],
+          entidad,
+          pais: 'México',
+        },
         telefono: `81${String(20000000 + i * 219).slice(0, 8)}`,
         email: `contacto@${razonSocial.split(' ')[0].toLowerCase()}.com.mx`,
         estatus: EstatusSocio.ACTIVO,

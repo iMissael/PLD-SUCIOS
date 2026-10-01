@@ -5,7 +5,8 @@ No es multitenant: un solo esquema de base de datos.
 
 ## Dominio
 
-- **usuarios**: quienes hacen consultas (rol `ADMIN`, `ANALISTA` o `CONSULTA`).
+- **usuarios**: los empleados que hacen consultas (rol `ADMIN`, `ANALISTA` o
+  `CONSULTA`). Llevan CURP y domicilio.
 - **socios**: los clientes que se consultan (persona física o moral).
 - **personas_relacionadas**: personas ligadas a un socio (`AVAL`, `CONYUGE`,
   `REPRESENTANTE_LEGAL`, `BENEFICIARIO_CONTROLADOR`, `REFERENCIA`).
@@ -68,6 +69,27 @@ Los de `usuarios` además requieren rol `ADMIN`.
 - `POST /usuarios` · `GET /usuarios` · `GET /usuarios/:id` · `PATCH /usuarios/:id` · `DELETE /usuarios/:id` (solo ADMIN)
 - `POST /socios` · `GET /socios` · `GET /socios/:id` · `PATCH /socios/:id` · `DELETE /socios/:id`
 - `POST /personas-relacionadas` · `GET /personas-relacionadas?socioId=<uuid>` · `GET /personas-relacionadas/:id` · `PATCH /personas-relacionadas/:id` · `DELETE /personas-relacionadas/:id`
+
+## Domicilio y CURP
+
+Socios y usuarios comparten el mismo domicilio desglosado
+(`src/common/domicilio`), que en el JSON va anidado:
+
+```json
+"domicilio": {
+  "calle": "Insurgentes Sur", "numeroExterior": "1605", "numeroInterior": "301",
+  "colonia": "San José Insurgentes", "codigoPostal": "03900",
+  "municipio": "Benito Juárez", "entidad": "Ciudad de México", "pais": "México"
+}
+```
+
+En la base son columnas `domicilio_calle`, `domicilio_numero_exterior`, etc.
+Todos los campos son opcionales; `codigoPostal` debe tener 5 dígitos.
+
+La CURP (socios, personas relacionadas y usuarios) se valida con `@IsCurp()`
+(`src/common/curp`): se pasa a mayúsculas y se revisan estructura, fecha real,
+clave de entidad y dígito verificador. En socios además se exige que la fecha
+de la CURP coincida con `fechaNacimiento` y que una persona moral no tenga CURP.
 
 ## Migraciones
 

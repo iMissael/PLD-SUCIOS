@@ -1,5 +1,6 @@
 import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { TipoRelacion } from '../entities/persona-relacionada.entity';
+import { IsCurp } from '../../common/curp/is-curp.decorator';
 
 export class CreatePersonaRelacionadaDto {
   @IsUUID()
@@ -24,7 +25,7 @@ export class CreatePersonaRelacionadaDto {
   rfc?: string;
 
   @IsOptional()
-  @IsString()
+  @IsCurp()
   curp?: string;
 
   @IsOptional()

@@ -24,6 +24,8 @@ export class UsuariosService {
       email: dto.email,
       passwordHash,
       rol: dto.rol,
+      curp: dto.curp,
+      domicilio: dto.domicilio,
     });
     return this.usuariosRepo.save(usuario);
   }

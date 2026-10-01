@@ -5,6 +5,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Domicilio } from '../../common/domicilio/domicilio.embedded';
 
 export enum RolUsuario {
   ADMIN = 'ADMIN',
@@ -31,6 +32,12 @@ export class Usuario {
 
   @Column({ default: true })
   activo: boolean;
+
+  @Column({ nullable: true })
+  curp?: string;
+
+  @Column(() => Domicilio, { prefix: false })
+  domicilio: Domicilio;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
