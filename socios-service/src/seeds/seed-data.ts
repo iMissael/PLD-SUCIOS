@@ -25,6 +25,10 @@ function randomFrom<T>(arr: T[], seed: number): T {
   return arr[seed % arr.length];
 }
 
+function rfcDeCurp(curp: string, idx: number): string {
+  return `${curp.slice(0, 10)}XX${idx % 10}`;
+}
+
 function fakeRfc(nombre: string, apellido: string, idx: number): string {
   const letras = (nombre[0] + apellido[0] + apellido[1]).toUpperCase();
   return `${letras}${String(800000 + idx).padStart(6, '0')}XX${idx % 10}`;
@@ -129,15 +133,6 @@ async function run() {
   const personasRepo = dataSource.getRepository(PersonaRelacionada);
 
   // --- Usuarios ---
-  const socioCountExistente = await sociosRepo.count();
-  if (socioCountExistente > 0) {
-    console.log(
-      `Ya existen ${socioCountExistente} socios en la base. No se vuelve a sembrar (evita duplicados).`,
-    );
-    await dataSource.destroy();
-    return;
-  }
-
   // Los usuarios son los empleados: llevan CURP y domicilio (salvo el admin genérico).
   const usuariosDef = [
     { nombre: 'Admin de pruebas', email: 'admin@socios-service.local', rol: RolUsuario.ADMIN, password: 'Admin123!' },
@@ -163,9 +158,18 @@ async function run() {
     },
   ];
 
-  for (const u of usuariosDef) {
+  for (const [idx, u] of usuariosDef.entries()) {
+    const curp = u.curp ? generarCurp(u.curp) : undefined;
+    const rfc = curp ? rfcDeCurp(curp, idx) : undefined;
     const existente = await usuariosRepo.findOne({ where: { email: u.email } });
-    if (existente) continue;
+    if (existente) {
+      if (curp && (!existente.curp || !existente.rfc)) {
+        existente.curp = existente.curp ?? curp;
+        existente.rfc = existente.rfc ?? rfcDeCurp(existente.curp, idx);
+        await usuariosRepo.save(existente);
+      }
+      continue;
+    }
     const passwordHash = await bcrypt.hash(u.password, 10);
     await usuariosRepo.save(
       usuariosRepo.create({
@@ -173,13 +177,23 @@ async function run() {
         email: u.email,
         passwordHash,
         rol: u.rol,
-        curp: u.curp ? generarCurp(u.curp) : undefined,
+        curp,
+        rfc,
         domicilio: u.domicilio,
       }),
     );
   }
   console.log(`Usuarios listos (${usuariosDef.length}):`);
   usuariosDef.forEach((u) => console.log(`  ${u.email} / ${u.password} (${u.rol})`));
+
+  const socioCountExistente = await sociosRepo.count();
+  if (socioCountExistente > 0) {
+    console.log(
+      `Ya existen ${socioCountExistente} socios en la base. No se vuelve a sembrar (evita duplicados).`,
+    );
+    await dataSource.destroy();
+    return;
+  }
 
   // --- Datos base para variar los socios ---
   const nombresFisica: [string, string, string, 'H' | 'M'][] = [

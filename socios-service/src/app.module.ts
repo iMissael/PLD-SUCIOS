@@ -8,6 +8,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { SociosModule } from './socios/socios.module';
 import { PersonasRelacionadasModule } from './personas-relacionadas/personas-relacionadas.module';
 import { AuthModule } from './auth/auth.module';
+import { MIGRACIONES } from './migrations';
 
 @Module({
   imports: [
@@ -20,10 +21,11 @@ import { AuthModule } from './auth/auth.module';
       password: process.env.DB_PASSWORD ?? 'postgrespassword',
       database: process.env.DB_NAME ?? 'socios_db',
       entities: [Usuario, Socio, PersonaRelacionada],
-      // Migraciones manuales, nunca auto-sync (evita el problema de migraciones
-      // destructivas generadas automáticamente).
+      // Nunca auto-sync (evita migraciones destructivas generadas automáticamente);
+      // las migraciones escritas a mano se aplican al arrancar.
       synchronize: false,
-      migrationsRun: false,
+      migrations: MIGRACIONES,
+      migrationsRun: true,
     }),
     UsuariosModule,
     SociosModule,

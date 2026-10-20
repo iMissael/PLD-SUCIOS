@@ -11,6 +11,7 @@ import { Domicilio } from '../../common/domicilio/domicilio.embedded';
 
 export enum TipoPersona {
   FISICA = 'FISICA',
+  FISICA_ACTIVIDAD_EMPRESARIAL = 'FISICA_ACTIVIDAD_EMPRESARIAL',
   MORAL = 'MORAL',
 }
 

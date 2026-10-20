@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, Matches, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RolUsuario } from '../entities/usuario.entity';
 import { DomicilioDto } from '../../common/domicilio/domicilio.dto';
@@ -22,6 +22,10 @@ export class CreateUsuarioDto {
   @IsOptional()
   @IsCurp()
   curp?: string;
+
+  @IsOptional()
+  @Matches(/^[A-ZÑ&]{4}\d{6}[A-Z\d]{3}$/, { message: 'rfc debe tener 13 caracteres de persona física (ej. TOLA900412AB1)' })
+  rfc?: string;
 
   @IsOptional()
   @ValidateNested()

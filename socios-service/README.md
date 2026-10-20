@@ -35,9 +35,6 @@ pnpm install
 # Levanta Postgres en el puerto 5433
 docker compose up -d
 
-# Ejecuta la migración manual (crea las 3 tablas + enums)
-pnpm run migration:run
-
 # (opcional) crea SOLO un usuario ADMIN de prueba: admin@socios-service.local / Admin123!
 pnpm run seed:admin
 
@@ -97,8 +94,11 @@ Siguiendo la misma convención que en `denuncias-app`: migraciones manuales
 (nunca `synchronize: true`, nunca `migration:generate` a ciegas), con
 guardas `IF NOT EXISTS` para poder re-ejecutarlas sin romper nada.
 
+Las pendientes se aplican solas al arrancar el servicio (`migrationsRun: true`).
+Cada migración nueva se registra en `src/migrations/index.ts`.
+
 ```bash
-pnpm run migration:run      # aplica migraciones pendientes
+pnpm run migration:run      # aplica migraciones pendientes sin levantar el servicio
 pnpm run migration:revert   # revierte la última
 ```
 

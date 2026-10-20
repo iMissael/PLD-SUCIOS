@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { isUUID } from 'class-validator';
 import { Repository } from 'typeorm';
 import { PersonaRelacionada } from './entities/persona-relacionada.entity';
 import { CreatePersonaRelacionadaDto } from './dto/create-persona-relacionada.dto';
@@ -22,6 +23,7 @@ export class PersonasRelacionadasService {
   }
 
   async findOne(id: string): Promise<PersonaRelacionada> {
+    if (!isUUID(id)) throw new NotFoundException('Persona relacionada no encontrada');
     const persona = await this.personasRepo.findOne({ where: { id } });
     if (!persona) throw new NotFoundException('Persona relacionada no encontrada');
     return persona;

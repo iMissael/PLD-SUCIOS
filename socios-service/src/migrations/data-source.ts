@@ -3,8 +3,7 @@ import { config } from 'dotenv';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Socio } from '../socios/entities/socio.entity';
 import { PersonaRelacionada } from '../personas-relacionadas/entities/persona-relacionada.entity';
-import { CreateInitialTables1758170000000 } from './1758170000000-CreateInitialTables';
-import { DomicilioDesglosadoYCurpUsuarios1759260000000 } from './1759260000000-DomicilioDesglosadoYCurpUsuarios';
+import { MIGRACIONES } from './index';
 
 config();
 
@@ -25,5 +24,5 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgrespassword',
   database: process.env.DB_NAME ?? 'socios_db',
   entities: [Usuario, Socio, PersonaRelacionada],
-  migrations: [CreateInitialTables1758170000000, DomicilioDesglosadoYCurpUsuarios1759260000000],
+  migrations: MIGRACIONES,
 });

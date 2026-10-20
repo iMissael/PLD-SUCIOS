@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { isUUID } from 'class-validator';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Usuario } from './entities/usuario.entity';
@@ -35,6 +36,7 @@ export class UsuariosService {
   }
 
   async findOne(id: string): Promise<Usuario> {
+    if (!isUUID(id)) throw new NotFoundException('Usuario no encontrado');
     const usuario = await this.usuariosRepo.findOne({ where: { id } });
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
     return usuario;

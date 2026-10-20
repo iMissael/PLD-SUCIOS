@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { isUUID } from 'class-validator';
 import { Repository } from 'typeorm';
 import { Socio, TipoPersona } from './entities/socio.entity';
 import { CreateSocioDto } from './dto/create-socio.dto';
@@ -24,6 +25,7 @@ export class SociosService {
   }
 
   async findOne(id: string): Promise<Socio> {
+    if (!isUUID(id)) throw new NotFoundException('Socio no encontrado');
     const socio = await this.sociosRepo.findOne({
       where: { id },
       relations: ['personasRelacionadas'],
