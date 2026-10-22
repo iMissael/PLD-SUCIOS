@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FormularioAcreditado from '../components/FormularioAcreditado';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -88,6 +89,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [expandidoId, setExpandidoId] = useState(null);
+  // null = solo listado; { acreditado: null } = alta; { acreditado } = edición.
+  const [formulario, setFormulario] = useState(null);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -123,6 +126,31 @@ export default function Home() {
     setToken(null);
     setAcreditados([]);
     setExpandidoId(null);
+    setFormulario(null);
+  }
+
+  async function handleGuardado() {
+    setFormulario(null);
+    await cargarAcreditados(token);
+  }
+
+  async function handleEliminar(s) {
+    const relacionadas = s.personasRelacionadas?.length ?? 0;
+    const nombre = [s.nombre, s.apellidoPaterno, s.apellidoMaterno].filter(Boolean).join(' ');
+    const aviso = relacionadas > 0 ? `\n\nTambién se eliminarán sus ${relacionadas} personas relacionadas.` : '';
+    if (!window.confirm(`¿Eliminar a ${nombre} (${s.id})?${aviso}`)) return;
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/acreditados/${s.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('No se pudo eliminar el acreditado');
+      if (formulario?.acreditado?.id === s.id) setFormulario(null);
+      await cargarAcreditados(token);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   function toggleDetalle(id) {
@@ -153,7 +181,14 @@ export default function Home() {
           </button>
         </form>
       ) : (
-        <div style={{ margin: '16px 0' }}>
+        <div style={{ margin: '16px 0', display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setFormulario({ acreditado: null })}
+            disabled={!!formulario}
+            style={{ padding: '6px 16px' }}
+          >
+            Nuevo acreditado
+          </button>
           <button onClick={handleLogout} style={{ padding: '6px 16px' }}>
             Cerrar sesión
           </button>
@@ -161,6 +196,18 @@ export default function Home() {
       )}
 
       {error && <p style={{ color: 'crimson' }}>{error}</p>}
+
+      {token && formulario && (
+        <FormularioAcreditado
+          // key: al cambiar de acreditado se reinicia el estado del formulario
+          key={formulario.acreditado?.id ?? 'alta'}
+          apiUrl={API_URL}
+          token={token}
+          acreditado={formulario.acreditado}
+          onGuardado={handleGuardado}
+          onCancelar={() => setFormulario(null)}
+        />
+      )}
 
       {token && (
         <table border="1" cellPadding="6" style={{ borderCollapse: 'collapse', marginTop: 16, width: '100%' }}>
@@ -193,9 +240,21 @@ export default function Home() {
                   <td>{s.esPep ? 'Sí' : 'No'}</td>
                   <td>{s.estatus}</td>
                   <td>{s.personasRelacionadas?.length ?? 0}</td>
-                  <td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
                     <button onClick={() => toggleDetalle(s.id)} style={{ padding: '2px 10px' }}>
                       {expandidoId === s.id ? 'Ocultar' : 'Ver detalle'}
+                    </button>{' '}
+                    <button
+                      onClick={() => {
+                        setFormulario({ acreditado: s });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{ padding: '2px 10px' }}
+                    >
+                      Editar
+                    </button>{' '}
+                    <button onClick={() => handleEliminar(s)} style={{ padding: '2px 10px', color: 'crimson' }}>
+                      Eliminar
                     </button>
                   </td>
                 </tr>
