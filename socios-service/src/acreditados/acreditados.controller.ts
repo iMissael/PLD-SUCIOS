@@ -16,11 +16,11 @@ import { Acreditado } from './entities/acreditado.entity';
 import { AcreditadosService } from './acreditados.service';
 
 @Controller('acreditados')
+@UseGuards(JwtAuthGuard)
 export class AcreditadosController {
   constructor(private readonly acreditadosService: AcreditadosService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   async create(@Body() dto: CreateAcreditadoDto) {
     return this.present(await this.acreditadosService.create(dto));
   }
@@ -38,20 +38,26 @@ export class AcreditadosController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   async update(@Param('id') id: string, @Body() dto: UpdateAcreditadoDto) {
     return this.present(await this.acreditadosService.update(id, dto));
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string) {
     await this.acreditadosService.remove(id);
   }
 
   private present(acreditado: Acreditado) {
-    const { id, codigo, ...datos } = acreditado;
+    const { id, codigo, personasRelacionadas, ...datos } = acreditado;
     if (!codigo) throw new NotFoundException('Acreditado sin código público');
-    return { ...datos, id: codigo };
+    return {
+      ...datos,
+      id: codigo,
+      // Las personas relacionadas apuntan al acreditado por su código público, no por el UUID interno.
+      personasRelacionadas: personasRelacionadas?.map((persona) => ({
+        ...persona,
+        acreditadoId: codigo,
+      })),
+    };
   }
 }

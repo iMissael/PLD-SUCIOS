@@ -26,17 +26,24 @@ export class PersonasRelacionadasService {
       ...dto,
       acreditadoId: acreditado.id,
     });
-    return this.personasRepo.save(persona);
+    const guardada = await this.personasRepo.save(persona);
+    return this.findOne(guardada.id);
   }
 
   async findAllByAcreditado(acreditadoId: string): Promise<PersonaRelacionada[]> {
     const acreditado = await this.findAcreditado(acreditadoId);
-    return this.personasRepo.find({ where: { acreditadoId: acreditado.id } });
+    return this.personasRepo.find({
+      where: { acreditadoId: acreditado.id },
+      relations: ['acreditado'],
+    });
   }
 
   async findOne(id: string): Promise<PersonaRelacionada> {
     if (!isUUID(id)) throw new NotFoundException('Persona relacionada no encontrada');
-    const persona = await this.personasRepo.findOne({ where: { id } });
+    const persona = await this.personasRepo.findOne({
+      where: { id },
+      relations: ['acreditado'],
+    });
     if (!persona) throw new NotFoundException('Persona relacionada no encontrada');
     return persona;
   }

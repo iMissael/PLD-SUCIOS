@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { OmitType, PartialType } from '@nestjs/mapped-types';
 import { CreateAcreditadoDto } from './create-acreditado.dto';
 
-export class UpdateAcreditadoDto extends PartialType(CreateAcreditadoDto) {}
+// El código es el ID público del acreditado: no se cambia después de crearlo.
+export class UpdateAcreditadoDto extends PartialType(
+  OmitType(CreateAcreditadoDto, ['codigo'] as const),
+) {}
