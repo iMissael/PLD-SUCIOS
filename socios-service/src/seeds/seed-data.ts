@@ -39,6 +39,142 @@ function fakeRfc(nombre: string, apellido: string, idx: number): string {
   return `${letras}${String(800000 + idx).padStart(6, '0')}XX${idx % 10}`;
 }
 
+/**
+ * Acreditados para probar las alertas inusuales de la Matriz PLD. Cada uno está pensado para una
+ * regla (ver `escenario`); las alertas se disparan al mandar operaciones de caja con su referencia.
+ * Los de listas bloqueadas coinciden con las personas sembradas en public.persona_bloqueada.
+ */
+interface AcreditadoPrueba {
+  codigo: string;
+  escenario: string;
+  tipoPersona: TipoPersona;
+  nombre: string;
+  apellidoPaterno?: string;
+  apellidoMaterno?: string;
+  rfc: string;
+  curp?: string;
+  fechaNacimiento: string;
+  nacionalidad?: string;
+  paisNacimiento?: string;
+  actividadEconomica: string;
+  fechaInicioActividad: string;
+  localidadId: number;
+  municipio: string;
+  entidad: string;
+  credito: { tipoCreditoId: number; monto: number; origenRecursosId: number; destinoRecursosId: number; canalPagoId: number };
+}
+
+function acreditadoPrueba(a: AcreditadoPrueba) {
+  const { escenario: _escenario, credito, localidadId, municipio, entidad, ...datos } = a;
+  return {
+    apellidoPaterno: '',
+    apellidoMaterno: '',
+    curp: '',
+    nacionalidad: 'MEXICANA',
+    paisNacimiento: 'MEXICO',
+    ...datos,
+    creditoSolicitado: { referencia: `CRED-${a.codigo}`, ...credito },
+    historialCrediticio: [],
+    estatus: EstatusAcreditado.ACTIVO,
+    domicilio: {
+      localidadId,
+      calle: 'AVENIDA JUAREZ',
+      numeroExterior: String(100 + Number(a.codigo.slice(-2))),
+      colonia: 'CENTRO',
+      municipio,
+      entidad,
+      pais: 'MEXICO',
+    },
+  };
+}
+
+const acreditadosAlertasInusuales = [
+  // --- Listas bloqueadas (regla 15, razón XIII) ---
+  acreditadoPrueba({
+    codigo: 'CLI-910', escenario: 'Lista bloqueada SAT: coincide exacto (RFC/CURP) con FELICIANA CANTÓN AMAYA',
+    tipoPersona: TipoPersona.FISICA, nombre: 'FELICIANA', apellidoPaterno: 'CANTÓN', apellidoMaterno: 'AMAYA',
+    rfc: 'CAAF910223Y6D', curp: 'FACA910223HNLAJI1', fechaNacimiento: '1991-02-23',
+    actividadEconomica: '6400006', fechaInicioActividad: '2016-05-01',
+    localidadId: 201945, municipio: 'SAN PEDRO GARZA GARCIA', entidad: 'NUEVO LEON',
+    credito: { tipoCreditoId: 2, monto: 250000, origenRecursosId: 2, destinoRecursosId: 2, canalPagoId: 1 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-911', escenario: 'Lista bloqueada PEP: coincide con TELMO ANTÓN ANDRÉS',
+    tipoPersona: TipoPersona.FISICA, nombre: 'TELMO', apellidoPaterno: 'ANTÓN', apellidoMaterno: 'ANDRÉS',
+    rfc: 'ANAT470122UZB', curp: 'TAAA470122HMOKW55', fechaNacimiento: '1947-01-22',
+    actividadEconomica: '8400004', fechaInicioActividad: '1990-01-15',
+    localidadId: 276407, municipio: 'HERMOSILLO', entidad: 'SONORA',
+    credito: { tipoCreditoId: 3, monto: 400000, origenRecursosId: 1, destinoRecursosId: 1, canalPagoId: 2 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-912', escenario: 'Lista bloqueada por alias: LEONARDO HIERRO GODOY es alias de FELICIANA CANTÓN AMAYA',
+    tipoPersona: TipoPersona.FISICA, nombre: 'LEONARDO', apellidoPaterno: 'HIERRO', apellidoMaterno: 'GODOY',
+    rfc: 'HIGL500307PQK', curp: 'LIHG500307HCASAH8', fechaNacimiento: '1950-03-07',
+    actividadEconomica: '7129019', fechaInicioActividad: '2001-07-01',
+    localidadId: 166401, municipio: 'ZAPOPAN', entidad: 'JALISCO',
+    credito: { tipoCreditoId: 2, monto: 80000, origenRecursosId: 2, destinoRecursosId: 2, canalPagoId: 3 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-913', escenario: 'Lista bloqueada BM y nacionalidad de país GAFI (Cuba): LEOPOLDO CORTÉS GARRIDO',
+    tipoPersona: TipoPersona.FISICA, nombre: 'LEOPOLDO', apellidoPaterno: 'CORTÉS', apellidoMaterno: 'GARRIDO',
+    rfc: 'COGL051027NVQ', curp: 'LOCG051027HCHW2P1', fechaNacimiento: '2005-10-27',
+    nacionalidad: 'CUBANA', paisNacimiento: 'CUBA',
+    actividadEconomica: '8700008', fechaInicioActividad: '2024-02-01',
+    localidadId: 343187, municipio: 'MERIDA', entidad: 'YUCATAN',
+    credito: { tipoCreditoId: 1, monto: 35000, origenRecursosId: 4, destinoRecursosId: 4, canalPagoId: 2 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-914', escenario: 'Homónimo: mismo nombre que NOELIA CUERVO ROCAMORA pero otro RFC/CURP/fecha (el oficial descarta)',
+    tipoPersona: TipoPersona.FISICA, nombre: 'NOELIA', apellidoPaterno: 'CUERVO', apellidoMaterno: 'ROCAMORA',
+    rfc: 'CURN800101AB1', curp: 'CURN800101MDFRCL01', fechaNacimiento: '1980-01-01',
+    actividadEconomica: '8400004', fechaInicioActividad: '2010-09-01',
+    localidadId: 105249, municipio: 'BENITO JUAREZ', entidad: 'CIUDAD DE MEXICO',
+    credito: { tipoCreditoId: 1, monto: 60000, origenRecursosId: 4, destinoRecursosId: 3, canalPagoId: 1 },
+  }),
+  // --- Montos (no están en listas): las alertas salen por el importe y la forma de pago ---
+  acreditadoPrueba({
+    codigo: 'CLI-915', escenario: 'Efectivo: depósitos de 300 mil y 500 mil pesos (reglas 5 y 7) y USD 500 en un movimiento (regla 6)',
+    tipoPersona: TipoPersona.FISICA, nombre: 'ALBERTO', apellidoPaterno: 'MÁRQUEZ', apellidoMaterno: 'SOLÍS',
+    rfc: 'MASA780910KJ2', curp: 'MASA780910HDFRLL04', fechaNacimiento: '1978-09-10',
+    actividadEconomica: '6400006', fechaInicioActividad: '2008-03-01',
+    localidadId: 228187, municipio: 'PUEBLA', entidad: 'PUEBLA',
+    credito: { tipoCreditoId: 3, monto: 900000, origenRecursosId: 5, destinoRecursosId: 2, canalPagoId: 2 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-916', escenario: 'Fraccionadas: varios pagos en USD que suman más de 7,500 (regla 3) y en distintas sucursales (regla 16)',
+    tipoPersona: TipoPersona.FISICA, nombre: 'PATRICIA', apellidoPaterno: 'ROJAS', apellidoMaterno: 'IBARRA',
+    rfc: 'ROIP850412TQ5', curp: 'ROIP850412MJCJBT03', fechaNacimiento: '1985-04-12',
+    actividadEconomica: '8200008', fechaInicioActividad: '2012-11-01',
+    localidadId: 122322, municipio: 'LEON', entidad: 'GUANAJUATO',
+    credito: { tipoCreditoId: 2, monto: 1500000, origenRecursosId: 2, destinoRecursosId: 2, canalPagoId: 1 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-917', escenario: 'Persona moral: operaciones grandes en efectivo y con país de régimen fiscal preferente (regla 17)',
+    tipoPersona: TipoPersona.MORAL, nombre: 'IMPORTADORA DEL PACÍFICO S.A. DE C.V.',
+    rfc: 'IPA120601HT7', fechaNacimiento: '2012-06-01',
+    actividadEconomica: '6600002', fechaInicioActividad: '2012-06-01',
+    localidadId: 319718, municipio: 'XALAPA', entidad: 'VERACRUZ',
+    credito: { tipoCreditoId: 3, monto: 2500000, origenRecursosId: 5, destinoRecursosId: 2, canalPagoId: 1 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-918', escenario: 'País: operaciones con país no cooperante GAFI (regla 18) o paraíso fiscal (regla 17)',
+    tipoPersona: TipoPersona.FISICA, nombre: 'RICARDO', apellidoPaterno: 'SALAZAR', apellidoMaterno: 'VEGA',
+    rfc: 'SAVR820315PL8', curp: 'SAVR820315HQTLGC02', fechaNacimiento: '1982-03-15',
+    actividadEconomica: '7400005', fechaInicioActividad: '2009-01-01',
+    localidadId: 235061, municipio: 'SANTIAGO DE QUERETARO', entidad: 'QUERETARO',
+    credito: { tipoCreditoId: 2, monto: 750000, origenRecursosId: 2, destinoRecursosId: 2, canalPagoId: 1 },
+  }),
+  acreditadoPrueba({
+    codigo: 'CLI-919', escenario: 'Extranjera de paraíso fiscal (Costa Rica): incidencia de riesgo-país al escanear',
+    tipoPersona: TipoPersona.FISICA, nombre: 'ANA LUCÍA', apellidoPaterno: 'BERMÚDEZ', apellidoMaterno: 'PRIETO',
+    rfc: 'BEPA900720XY1', fechaNacimiento: '1990-07-20',
+    nacionalidad: 'COSTARRICENSE', paisNacimiento: 'COSTA RICA',
+    actividadEconomica: '8400004', fechaInicioActividad: '2018-04-01',
+    localidadId: 71327, municipio: 'TUXTLA GUTIERREZ', entidad: 'CHIAPAS',
+    credito: { tipoCreditoId: 1, monto: 15000, origenRecursosId: 4, destinoRecursosId: 4, canalPagoId: 3 },
+  }),
+];
+
 const acreditadosIntegracion = [
   {
     codigo: 'CLI-900',
@@ -151,6 +287,7 @@ const acreditadosIntegracion = [
       pais: 'MEXICO',
     },
   },
+  ...acreditadosAlertasInusuales,
 ];
 
 function fechaInicioActividadDesdeAntiguedad(
