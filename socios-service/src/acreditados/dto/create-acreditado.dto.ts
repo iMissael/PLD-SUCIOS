@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEmail,
@@ -7,14 +8,42 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
+  ValidateBy,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { EstatusSocio, NivelRiesgo, TipoPersona } from '../entities/socio.entity';
+import {
+  EstatusAcreditado,
+  NivelRiesgo,
+  TipoPersona,
+} from '../entities/acreditado.entity';
 import { DomicilioDto } from '../../common/domicilio/domicilio.dto';
 import { IsCurp } from '../../common/curp/is-curp.decorator';
+import { CreditoSolicitadoDto } from './credito-solicitado.dto';
+import { HistorialCrediticioDto } from './historial-crediticio.dto';
 
-export class CreateSocioDto {
+function IsClaveActividadEconomica() {
+  return ValidateBy({
+    name: 'isClaveActividadEconomica',
+    validator: {
+      validate: (value: unknown) =>
+        typeof value === 'string' &&
+        (!/^\d+$/.test(value) ||
+          (/^\d{6,7}$/.test(value) &&
+            Number(value) >= 100008 &&
+            Number(value) <= 9999999)),
+      defaultMessage: () =>
+        'actividadEconomica debe ser una clave SAT entre 100008 y 9999999',
+    },
+  });
+}
+
+export class CreateAcreditadoDto {
+  @IsOptional()
+  @IsString()
+  codigo?: string;
+
   @IsEnum(TipoPersona)
   tipoPersona: TipoPersona;
 
@@ -34,12 +63,17 @@ export class CreateSocioDto {
   rfc?: string;
 
   @IsOptional()
+  @ValidateIf((_object, value) => value !== '')
   @IsCurp()
   curp?: string;
 
   @IsOptional()
   @IsDateString()
   fechaNacimiento?: string;
+
+  @IsOptional()
+  @IsString()
+  paisNacimiento?: string;
 
   @IsOptional()
   @IsString()
@@ -73,7 +107,12 @@ export class CreateSocioDto {
 
   @IsOptional()
   @IsString()
+  @IsClaveActividadEconomica()
   actividadEconomica?: string;
+
+  @IsOptional()
+  @IsDateString()
+  fechaInicioActividad?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -93,6 +132,17 @@ export class CreateSocioDto {
   domicilio?: DomicilioDto;
 
   @IsOptional()
+  @ValidateNested()
+  @Type(() => CreditoSolicitadoDto)
+  creditoSolicitado?: CreditoSolicitadoDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => HistorialCrediticioDto)
+  historialCrediticio?: HistorialCrediticioDto[];
+
+  @IsOptional()
   @IsString()
   telefono?: string;
 
@@ -101,8 +151,8 @@ export class CreateSocioDto {
   email?: string;
 
   @IsOptional()
-  @IsEnum(EstatusSocio)
-  estatus?: EstatusSocio;
+  @IsEnum(EstatusAcreditado)
+  estatus?: EstatusAcreditado;
 
   @IsOptional()
   @IsEnum(NivelRiesgo)

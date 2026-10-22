@@ -24,10 +24,10 @@ export class PersonasRelacionadasController {
     return this.personasService.create(dto);
   }
 
-  // GET /personas-relacionadas?socioId=<uuid>
+  // GET /personas-relacionadas?acreditadoId=<uuid-o-codigo>
   @Get()
-  findAllBySocio(@Query('socioId') socioId: string) {
-    return this.personasService.findAllBySocio(socioId);
+  findAllByAcreditado(@Query('acreditadoId') acreditadoId: string) {
+    return this.personasService.findAllByAcreditado(acreditadoId);
   }
 
   @Get(':id')

@@ -1,7 +1,7 @@
 {
-  "name": "socios-service",
+  "name": "acreditados-service",
   "version": "0.1.0",
-  "description": "Microservicio de pruebas: socios (clientes), usuarios y personas relacionadas (aval/conyuge)",
+  "description": "Microservicio de prueba: acreditados, usuarios y personas relacionadas",
   "private": true,
   "scripts": {
     "build": "nest build",

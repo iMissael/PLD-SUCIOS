@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Usuario, RolUsuario } from '../usuarios/entities/usuario.entity';
-import { Socio } from '../socios/entities/socio.entity';
+import { Acreditado } from '../acreditados/entities/acreditado.entity';
 import { PersonaRelacionada } from '../personas-relacionadas/entities/persona-relacionada.entity';
 
 config();
@@ -17,7 +17,7 @@ async function run() {
     username: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgrespassword',
     database: process.env.DB_NAME ?? 'socios_db',
-    entities: [Usuario, Socio, PersonaRelacionada],
+    entities: [Usuario, Acreditado, PersonaRelacionada],
   });
 
   await dataSource.initialize();

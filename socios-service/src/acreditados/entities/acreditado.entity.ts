@@ -15,7 +15,7 @@ export enum TipoPersona {
   MORAL = 'MORAL',
 }
 
-export enum EstatusSocio {
+export enum EstatusAcreditado {
   ACTIVO = 'ACTIVO',
   INACTIVO = 'INACTIVO',
 }
@@ -26,15 +26,40 @@ export enum NivelRiesgo {
   ALTO = 'ALTO',
 }
 
-@Entity('socios')
-export class Socio {
+export interface CreditoSolicitado {
+  referencia: string;
+  tipoCreditoId: number;
+  monto: number;
+  origenRecursosId: number;
+  destinoRecursosId: number;
+  canalPagoId: number;
+}
+
+export interface HistorialCrediticio {
+  referencia: string;
+  tipoCreditoId: number;
+  monto: number;
+  fechaOtorgamiento: string;
+  estatus: string;
+}
+
+@Entity('acreditados')
+export class Acreditado {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'tipo_persona', type: 'enum', enum: TipoPersona, default: TipoPersona.FISICA })
+  @Column({ unique: true })
+  codigo: string;
+
+  @Column({
+    name: 'tipo_persona',
+    type: 'enum',
+    enum: TipoPersona,
+    enumName: 'acreditados_tipo_persona_enum',
+    default: TipoPersona.FISICA,
+  })
   tipoPersona: TipoPersona;
 
-  // Para persona física: nombre(s). Para persona moral: razón social.
   @Column()
   nombre: string;
 
@@ -53,6 +78,9 @@ export class Socio {
   @Column({ name: 'fecha_nacimiento', type: 'date', nullable: true })
   fechaNacimiento?: string;
 
+  @Column({ name: 'pais_nacimiento', nullable: true })
+  paisNacimiento?: string;
+
   @Column({ nullable: true })
   nacionalidad?: string;
 
@@ -65,20 +93,26 @@ export class Socio {
   @Column({ nullable: true })
   localidad?: string;
 
-  // Entidad federativa (estado)
   @Column({ nullable: true })
   entidad?: string;
 
-  // Años desde la constitución (útil sobre todo para persona moral)
   @Column({ name: 'tiempo_constitucion', type: 'int', nullable: true })
   tiempoConstitucion?: number;
 
-  // Años de experiencia en su actividad económica
   @Column({ name: 'experiencia_actividad', type: 'int', nullable: true })
   experienciaActividad?: number;
 
   @Column({ name: 'actividad_economica', nullable: true })
   actividadEconomica?: string;
+
+  @Column({ name: 'fecha_inicio_actividad', type: 'date', nullable: true })
+  fechaInicioActividad?: string;
+
+  @Column({ name: 'credito_solicitado', type: 'jsonb', nullable: true })
+  creditoSolicitado?: CreditoSolicitado;
+
+  @Column({ name: 'historial_crediticio', type: 'jsonb', nullable: true })
+  historialCrediticio?: HistorialCrediticio[];
 
   @Column({ name: 'tiene_historial', default: false })
   tieneHistorial: boolean;
@@ -101,16 +135,27 @@ export class Socio {
   @Column({ name: 'fecha_alta', type: 'date', default: () => 'CURRENT_DATE' })
   fechaAlta: string;
 
-  @Column({ type: 'enum', enum: EstatusSocio, default: EstatusSocio.ACTIVO })
-  estatus: EstatusSocio;
+  @Column({
+    type: 'enum',
+    enum: EstatusAcreditado,
+    enumName: 'acreditados_estatus_enum',
+    default: EstatusAcreditado.ACTIVO,
+  })
+  estatus: EstatusAcreditado;
 
-  @Column({ name: 'nivel_riesgo', type: 'enum', enum: NivelRiesgo, nullable: true })
+  @Column({
+    name: 'nivel_riesgo',
+    type: 'enum',
+    enum: NivelRiesgo,
+    enumName: 'acreditados_nivel_riesgo_enum',
+    nullable: true,
+  })
   nivelRiesgo?: NivelRiesgo;
 
   @Column({ name: 'es_pep', default: false })
   esPep: boolean;
 
-  @OneToMany(() => PersonaRelacionada, (persona) => persona.socio, { cascade: false })
+  @OneToMany(() => PersonaRelacionada, (persona) => persona.acreditado, { cascade: false })
   personasRelacionadas: PersonaRelacionada[];
 
   @CreateDateColumn({ name: 'created_at' })

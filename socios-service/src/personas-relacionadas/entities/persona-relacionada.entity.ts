@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Socio } from '../../socios/entities/socio.entity';
+import { Acreditado } from '../../acreditados/entities/acreditado.entity';
 
 export enum TipoRelacion {
   AVAL = 'AVAL',
@@ -22,12 +22,12 @@ export class PersonaRelacionada {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Socio, (socio) => socio.personasRelacionadas, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'socio_id' })
-  socio: Socio;
+  @ManyToOne(() => Acreditado, (acreditado) => acreditado.personasRelacionadas, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'acreditado_id' })
+  acreditado: Acreditado;
 
-  @Column({ name: 'socio_id' })
-  socioId: string;
+  @Column({ name: 'acreditado_id' })
+  acreditadoId: string;
 
   @Column({ name: 'tipo_relacion', type: 'enum', enum: TipoRelacion })
   tipoRelacion: TipoRelacion;

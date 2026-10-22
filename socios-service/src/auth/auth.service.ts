@@ -4,6 +4,10 @@ import * as bcrypt from 'bcryptjs';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { LoginDto } from './dto/login.dto';
 
+const LOGIN_ALIASES: Record<string, string> = {
+  'admin@acreditados-service.local': 'admin@socios-service.local',
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -12,7 +16,8 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const usuario = await this.usuariosService.findByEmail(dto.email);
+    const email = LOGIN_ALIASES[dto.email] ?? dto.email;
+    const usuario = await this.usuariosService.findByEmail(email);
     if (!usuario || !usuario.activo) {
       throw new UnauthorizedException('Credenciales inválidas');
     }

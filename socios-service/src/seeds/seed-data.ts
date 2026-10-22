@@ -2,7 +2,12 @@ import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Usuario, RolUsuario } from '../usuarios/entities/usuario.entity';
-import { Socio, TipoPersona, EstatusSocio, NivelRiesgo } from '../socios/entities/socio.entity';
+import {
+  Acreditado,
+  EstatusAcreditado,
+  NivelRiesgo,
+  TipoPersona,
+} from '../acreditados/entities/acreditado.entity';
 import {
   PersonaRelacionada,
   TipoRelacion,
@@ -12,13 +17,13 @@ import { digitoVerificadorCurp } from '../common/curp/curp';
 config();
 
 /**
- * Seed de datos de prueba: 5 usuarios, 25 socios variados y sus
+ * Seed de datos de prueba: 5 usuarios, acreditados variados y sus
  * personas relacionadas (aval/cónyuge/representante legal/beneficiario).
  *
  * Uso: pnpm run seed:data
  *
- * Es idempotente a nivel "todo o nada": si ya existen socios, no vuelve
- * a insertar (evita duplicar datos si lo corres dos veces).
+ * Es idempotente a nivel acreditados: conserva los registros existentes y
+ * asegura los tres acreditados de integración con sus datos actualizados.
  */
 
 function randomFrom<T>(arr: T[], seed: number): T {
@@ -32,6 +37,260 @@ function rfcDeCurp(curp: string, idx: number): string {
 function fakeRfc(nombre: string, apellido: string, idx: number): string {
   const letras = (nombre[0] + apellido[0] + apellido[1]).toUpperCase();
   return `${letras}${String(800000 + idx).padStart(6, '0')}XX${idx % 10}`;
+}
+
+const acreditadosIntegracion = [
+  {
+    codigo: 'CLI-900',
+    tipoPersona: TipoPersona.FISICA,
+    nombre: 'JUAN',
+    apellidoPaterno: 'PEREZ',
+    apellidoMaterno: 'LOPEZ',
+    rfc: 'PELJ850101AB1',
+    curp: 'PELJ850101HDFRPN09',
+    fechaNacimiento: '1985-01-01',
+    paisNacimiento: 'MEXICO',
+    nacionalidad: 'MEXICANA',
+    actividadEconomica: '100008',
+    fechaInicioActividad: '2015-03-01',
+    creditoSolicitado: {
+      referencia: 'CRED-0001',
+      tipoCreditoId: 2,
+      monto: 150000,
+      origenRecursosId: 2,
+      destinoRecursosId: 2,
+      canalPagoId: 1,
+    },
+    historialCrediticio: [
+      {
+        referencia: 'CRED-0000',
+        tipoCreditoId: 1,
+        monto: 20000,
+        fechaOtorgamiento: '2023-02-10',
+        estatus: 'PAGADO',
+      },
+    ],
+    estatus: EstatusAcreditado.ACTIVO,
+    domicilio: {
+      localidadId: 105250, // CUAUHTEMOC, CDMX
+      calle: 'REFORMA',
+      numeroExterior: '100',
+      numeroInterior: '2',
+      colonia: 'CENTRO',
+      codigoPostal: '06000',
+      municipio: 'CUAUHTEMOC',
+      entidad: 'CDMX',
+      pais: 'MEXICO',
+    },
+  },
+  {
+    codigo: 'CLI-901',
+    tipoPersona: TipoPersona.FISICA,
+    nombre: 'RODRIGO',
+    apellidoPaterno: 'VILLASEÑOR',
+    apellidoMaterno: 'QUINTERO',
+    rfc: 'VIQR780213AB1',
+    curp: 'VIQR780213HDFLLR05',
+    fechaNacimiento: '1978-02-13',
+    paisNacimiento: 'MEXICO',
+    nacionalidad: 'MEXICANA',
+    actividadEconomica: '100008',
+    fechaInicioActividad: '2015-03-01',
+    creditoSolicitado: {
+      referencia: 'CRED-0901',
+      tipoCreditoId: 3,
+      monto: 400000,
+      origenRecursosId: 2,
+      destinoRecursosId: 2,
+      canalPagoId: 2,
+    },
+    historialCrediticio: [],
+    estatus: EstatusAcreditado.ACTIVO,
+    domicilio: {
+      localidadId: 105250, // CUAUHTEMOC, CDMX
+      calle: 'CALLE 5 DE MAYO',
+      numeroExterior: '420',
+      colonia: 'CENTRO',
+      codigoPostal: '06000',
+      municipio: 'CUAUHTEMOC',
+      entidad: 'CDMX',
+      pais: 'MEXICO',
+    },
+  },
+  {
+    codigo: 'CLI-902',
+    tipoPersona: TipoPersona.MORAL,
+    nombre: 'MEXICO SOLUCIONES S.A. DE C.V.',
+    apellidoPaterno: '',
+    apellidoMaterno: '',
+    rfc: 'MSSC980101QW1',
+    curp: '',
+    fechaNacimiento: '1998-01-01',
+    paisNacimiento: 'MEXICO',
+    nacionalidad: 'MEXICANA',
+    actividadEconomica: '6600002', // COMPRAVENTA DE MATERIAS PRIMAS, MATERIALES Y AUXILIARES
+    fechaInicioActividad: '2015-03-01',
+    creditoSolicitado: {
+      referencia: 'CRED-0902',
+      tipoCreditoId: 2,
+      monto: 750000,
+      origenRecursosId: 5,
+      destinoRecursosId: 2,
+      canalPagoId: 1,
+    },
+    historialCrediticio: [],
+    estatus: EstatusAcreditado.INACTIVO,
+    domicilio: {
+      localidadId: 105250, // CUAUHTEMOC, CDMX
+      calle: 'AVENIDA INSURGENTES',
+      numeroExterior: '1200',
+      colonia: 'JUAREZ',
+      codigoPostal: '06600',
+      municipio: 'CUAUHTEMOC',
+      entidad: 'CDMX',
+      pais: 'MEXICO',
+    },
+  },
+];
+
+function fechaInicioActividadDesdeAntiguedad(
+  fechaReferencia: string,
+  antiguedad: number,
+): string {
+  const fecha = new Date(`${fechaReferencia}T00:00:00Z`);
+  fecha.setUTCFullYear(fecha.getUTCFullYear() - antiguedad);
+  return fecha.toISOString().slice(0, 10);
+}
+
+// ---------------------------------------------------------------------------
+// Datos que la Matriz PLD necesita para evaluar sin capturar nada a mano.
+// Las claves e ids son los de sus catálogos (cat_actividad_economica.clave_sat,
+// cat_localidad.id, cat_tipo_credito, cat_origen_recurso, cat_destino_recurso,
+// cat_canal_pago).
+// ---------------------------------------------------------------------------
+
+/** Actividad en texto → clave SAT de cat_actividad_economica. */
+const CLAVE_SAT_ACTIVIDAD: Record<string, string> = {
+  AGRICULTURA: '100008',
+  AGROINDUSTRIA: '2000008', // FABRICACIÓN DE ALIMENTOS
+  'BIENES RAICES': '8300006', // SERVICIOS RELACIONADOS CON INMUEBLES
+  'COMERCIO AL POR MAYOR': '6600002', // COMPRAVENTA DE MATERIAS PRIMAS, MATERIALES Y AUXILIARES
+  'COMERCIO AL POR MENOR': '6400006', // COMPRAVENTA EN TIENDAS DE AUTOSERVICIO Y DEPARTAMENTALES
+  CONSTRUCCION: '4100004', // CONTRATACIÓN DE OBRAS COMPLETAS DE CONSTRUCCIÓN
+  CONSULTORIA: '8400004', // SERVICIOS PROFESIONALES Y TÉCNICOS
+  LOGISTICA: '7400005', // SERVICIOS CONEXOS AL TRANSPORTE
+  MANUFACTURA: '3900009', // OTRAS INDUSTRIAS MANUFACTURERAS
+  RESTAURANTERO: '8700008', // PREPARACIÓN Y SERVICIO DE ALIMENTOS Y BEBIDAS
+  'SERVICIOS FINANCIEROS': '8200008', // SERVICIOS COLATERALES A INSTITUCIONES FINANCIERAS
+  'SERVICIOS PROFESIONALES': '8400004', // SERVICIOS PROFESIONALES Y TÉCNICOS
+  TECNOLOGIA: '8400004', // SERVICIOS PROFESIONALES Y TÉCNICOS
+  'TRANSPORTE DE CARGA': '7129019', // TRANSPORTE DE CARGA FORÁNEA
+};
+
+function sinAcentos(texto: string): string {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+}
+
+/** Claves que están dadas de baja en la Matriz (estatus B) → la que las reemplaza. */
+const CLAVE_SAT_REEMPLAZO: Record<string, string> = {
+  '8400002': '8400004', // ASESORES FISCALES Y FINANCIEROS → SERVICIOS PROFESIONALES Y TÉCNICOS
+};
+
+/** Si ya es clave SAT (solo dígitos) se deja igual, salvo que esté dada de baja. */
+function claveActividad(actividad?: string): string | undefined {
+  if (!actividad) return actividad;
+  const valor = actividad.trim();
+  if (/^\d+$/.test(valor)) return CLAVE_SAT_REEMPLAZO[valor] ?? valor;
+  return CLAVE_SAT_ACTIVIDAD[sinAcentos(valor)] ?? valor;
+}
+
+/** Entidad → id de cat_localidad de la ciudad que usa el seed en esa entidad. */
+const LOCALIDAD_ID_POR_ENTIDAD: Record<string, number> = {
+  'CIUDAD DE MEXICO': 105249, // BENITO JUAREZ
+  CDMX: 105250, // CUAUHTEMOC (acreditados de integración)
+  JALISCO: 166401, // ZAPOPAN
+  'NUEVO LEON': 201945, // SAN PEDRO GARZA GARCIA
+  PUEBLA: 228187, // HEROICA PUEBLA DE ZARAGOZA
+  GUANAJUATO: 122322, // LEON DE LOS ALDAMA
+  YUCATAN: 343187, // MERIDA
+  SONORA: 276407, // HERMOSILLO
+  CHIAPAS: 71327, // TUXTLA GUTIERREZ
+  QUERETARO: 235061, // SANTIAGO DE QUERETARO
+  VERACRUZ: 319718, // XALAPA-ENRIQUEZ
+};
+
+function localidadIdDe(entidad?: string): number | undefined {
+  return entidad ? LOCALIDAD_ID_POR_ENTIDAD[sinAcentos(entidad)] : undefined;
+}
+
+// cat_tipo_credito: 1 CREDINOMINA INTELIGENTE (solo física, 3 mil a 100 mil),
+// 2 FRANQUIFONDO (5 mil a 20 millones), 3 CREDIPLUS (100 mil a 5 millones).
+const MONTOS_POR_TIPO_CREDITO: Record<number, number[]> = {
+  1: [15000, 35000, 60000, 95000],
+  2: [80000, 250000, 750000, 1500000],
+  3: [150000, 400000, 900000, 2500000],
+};
+
+/** Crédito que se evalúa; los ids son de cat_origen_recurso (1-5), cat_destino_recurso (1-4) y cat_canal_pago (1-3). */
+function creditoDePrueba(i: number, codigo: string, moral: boolean) {
+  const tipoCreditoId = moral ? 2 + (i % 2) : 1 + (i % 3);
+  return {
+    referencia: `CRED-${codigo}`,
+    tipoCreditoId,
+    monto: randomFrom(MONTOS_POR_TIPO_CREDITO[tipoCreditoId], i),
+    origenRecursosId: moral ? 2 + (i % 2) * 3 : 1 + (i % 5), // morales: Capital de Trabajo o Compra de mercancía
+    destinoRecursosId: moral ? 2 : 1 + (i % 4),
+    canalPagoId: 1 + (i % 3),
+  };
+}
+
+function historialDePrueba(i: number, codigo: string) {
+  const historial = [
+    {
+      referencia: `CRED-${codigo}-H1`,
+      tipoCreditoId: 1,
+      monto: 20000 + (i % 5) * 5000,
+      fechaOtorgamiento: `${2019 + (i % 4)}-0${1 + (i % 9)}-15`,
+      estatus: 'PAGADO',
+    },
+  ];
+  if (i % 3 === 0) {
+    historial.push({
+      referencia: `CRED-${codigo}-H2`,
+      tipoCreditoId: 3,
+      monto: 120000 + (i % 4) * 30000,
+      fechaOtorgamiento: '2024-06-01',
+      estatus: 'VIGENTE',
+    });
+  }
+  return historial;
+}
+
+/**
+ * Completa lo que la Matriz necesita para evaluar: actividad como clave SAT,
+ * localidad del domicilio, fecha de constitución en morales, crédito solicitado
+ * e historial. Solo llena lo que falta; no pisa lo que ya tenga el acreditado.
+ */
+function completarParaEvaluacion(acreditado: Acreditado, i: number): Acreditado {
+  const moral = acreditado.tipoPersona === TipoPersona.MORAL;
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  acreditado.actividadEconomica = claveActividad(acreditado.actividadEconomica);
+  acreditado.paisNacimiento ??= 'MEXICO';
+  acreditado.fechaInicioActividad ??= fechaInicioActividadDesdeAntiguedad(
+    acreditado.fechaAlta ?? hoy,
+    acreditado.experienciaActividad ?? acreditado.tiempoConstitucion ?? 1,
+  );
+  // En morales fechaNacimiento es la fecha de constitución.
+  if (moral) acreditado.fechaNacimiento ??= acreditado.fechaInicioActividad;
+
+  acreditado.domicilio ??= {};
+  acreditado.domicilio.localidadId ??= localidadIdDe(acreditado.domicilio.entidad ?? acreditado.entidad);
+
+  acreditado.creditoSolicitado ??= creditoDePrueba(i, acreditado.codigo, moral);
+  if (acreditado.tieneHistorial) acreditado.historialCrediticio ??= historialDePrueba(i, acreditado.codigo);
+  acreditado.historialCrediticio ??= [];
+  return acreditado;
 }
 
 const CLAVE_ENTIDAD_CURP: Record<string, string> = {
@@ -123,13 +382,13 @@ async function run() {
     username: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgrespassword',
     database: process.env.DB_NAME ?? 'socios_db',
-    entities: [Usuario, Socio, PersonaRelacionada],
+    entities: [Usuario, Acreditado, PersonaRelacionada],
   });
 
   await dataSource.initialize();
 
   const usuariosRepo = dataSource.getRepository(Usuario);
-  const sociosRepo = dataSource.getRepository(Socio);
+  const acreditadosRepo = dataSource.getRepository(Acreditado);
   const personasRepo = dataSource.getRepository(PersonaRelacionada);
 
   // --- Usuarios ---
@@ -186,16 +445,32 @@ async function run() {
   console.log(`Usuarios listos (${usuariosDef.length}):`);
   usuariosDef.forEach((u) => console.log(`  ${u.email} / ${u.password} (${u.rol})`));
 
-  const socioCountExistente = await sociosRepo.count();
-  if (socioCountExistente > 0) {
+  const acreditadoCountExistente = await acreditadosRepo.count();
+  if (acreditadoCountExistente > 0) {
+    const existentes = await acreditadosRepo.find({ order: { codigo: 'ASC' } });
+    for (const [i, existente] of existentes.entries()) {
+      await acreditadosRepo.save(completarParaEvaluacion(existente, i));
+    }
+
+    for (const demo of acreditadosIntegracion) {
+      const existente = await acreditadosRepo.findOne({
+        where: { codigo: demo.codigo },
+      });
+      if (!existente) {
+        await acreditadosRepo.save(acreditadosRepo.create(demo));
+        continue;
+      }
+      Object.assign(existente, demo);
+      await acreditadosRepo.save(existente);
+    }
     console.log(
-      `Ya existen ${socioCountExistente} socios en la base. No se vuelve a sembrar (evita duplicados).`,
+      `Ya existen ${acreditadoCountExistente} acreditados en la base. Se conservaron y se verificaron los datos de integración.`,
     );
     await dataSource.destroy();
     return;
   }
 
-  // --- Datos base para variar los socios ---
+  // --- Datos base para variar los acreditados ---
   const nombresFisica: [string, string, string, 'H' | 'M'][] = [
     ['María', 'González', 'Pérez', 'M'],
     ['Juan', 'Ramírez', 'López', 'H'],
@@ -262,15 +537,16 @@ async function run() {
     'Ahorro e inversión', 'Adquisición de bienes', 'Capital de trabajo',
   ];
 
-  const socios: Socio[] = [];
+  const acreditados: Acreditado[] = [];
 
   // 17 personas físicas
   nombresFisica.forEach(([nombre, apellidoPaterno, apellidoMaterno, sexo], i) => {
     const entidad = randomFrom(entidades, i);
     const esPep = i === 3 || i === 11; // un par marcados como PEP
     const fechaNacimiento = `19${60 + (i % 35)}-0${(i % 9) + 1}-1${i % 9}`;
-    socios.push(
-      sociosRepo.create({
+    acreditados.push(
+      acreditadosRepo.create({
+        codigo: `CLI-${1000 + i}`,
         tipoPersona: TipoPersona.FISICA,
         nombre,
         apellidoPaterno,
@@ -278,12 +554,17 @@ async function run() {
         rfc: fakeRfc(nombre, apellidoPaterno, i),
         curp: generarCurp({ nombre, apellidoPaterno, apellidoMaterno, fechaNacimiento, sexo, entidad }),
         fechaNacimiento,
+        paisNacimiento: 'MEXICO',
         nacionalidad: 'Mexicana',
         zonaGeografica: randomFrom(zonasGeograficas, i),
         pais: 'México',
         localidad: localidadesPorEntidad[entidad],
         entidad,
         experienciaActividad: 1 + (i % 20),
+        fechaInicioActividad: fechaInicioActividadDesdeAntiguedad(
+          new Date().toISOString().slice(0, 10),
+          1 + (i % 20),
+        ),
         actividadEconomica: randomFrom(actividadesEconomicasFisica, i),
         domicilio: {
           calle: `Calle ${10 + i}`,
@@ -296,7 +577,7 @@ async function run() {
         },
         telefono: `55${String(10000000 + i * 137).slice(0, 8)}`,
         email: `${nombre.toLowerCase()}.${apellidoPaterno.toLowerCase()}@correo-prueba.com`,
-        estatus: i % 9 === 0 ? EstatusSocio.INACTIVO : EstatusSocio.ACTIVO,
+        estatus: i % 9 === 0 ? EstatusAcreditado.INACTIVO : EstatusAcreditado.ACTIVO,
         nivelRiesgo: randomFrom(nivelesRiesgo, i),
         esPep,
         tieneHistorial: i % 2 === 0,
@@ -310,17 +591,23 @@ async function run() {
   razonesSociales.forEach((razonSocial, i) => {
     const idx = i + 100;
     const entidad = randomFrom(entidades, idx);
-    socios.push(
-      sociosRepo.create({
+    acreditados.push(
+      acreditadosRepo.create({
+        codigo: `CLI-${1100 + i}`,
         tipoPersona: TipoPersona.MORAL,
         nombre: razonSocial,
         rfc: `${razonSocial.replace(/[^A-Z]/g, '').slice(0, 3)}${String(900000 + i).padStart(6, '0')}XX${i}`,
         nacionalidad: 'Mexicana',
+        paisNacimiento: 'MEXICO',
         zonaGeografica: randomFrom(zonasGeograficas, idx),
         pais: 'México',
         localidad: localidadesPorEntidad[entidad],
         entidad,
         tiempoConstitucion: 1 + (i % 25),
+        fechaInicioActividad: fechaInicioActividadDesdeAntiguedad(
+          new Date().toISOString().slice(0, 10),
+          1 + (i % 25),
+        ),
         actividadEconomica: randomFrom(actividadesEconomicasMoral, idx),
         domicilio: {
           calle: 'Av. Industria',
@@ -333,7 +620,7 @@ async function run() {
         },
         telefono: `81${String(20000000 + i * 219).slice(0, 8)}`,
         email: `contacto@${razonSocial.split(' ')[0].toLowerCase()}.com.mx`,
-        estatus: EstatusSocio.ACTIVO,
+        estatus: EstatusAcreditado.ACTIVO,
         nivelRiesgo: randomFrom(nivelesRiesgo, idx),
         esPep: false,
         tieneHistorial: i % 3 !== 0,
@@ -343,8 +630,12 @@ async function run() {
     );
   });
 
-  const sociosGuardados = await sociosRepo.save(socios);
-  console.log(`Socios creados: ${sociosGuardados.length}`);
+  acreditados.forEach((acreditado, i) => completarParaEvaluacion(acreditado, i));
+  acreditados.push(
+    ...acreditadosIntegracion.map((demo) => acreditadosRepo.create(demo)),
+  );
+  const acreditadosGuardados = await acreditadosRepo.save(acreditados);
+  console.log(`Acreditados creados: ${acreditadosGuardados.length}`);
 
   // --- Personas relacionadas ---
   const personas: PersonaRelacionada[] = [];
@@ -357,14 +648,14 @@ async function run() {
     ['Arturo', 'Solís', 'Peña'],
   ];
 
-  sociosGuardados.forEach((socio, i) => {
-    if (socio.tipoPersona === TipoPersona.FISICA) {
+  acreditadosGuardados.forEach((acreditado, i) => {
+    if (acreditado.tipoPersona === TipoPersona.FISICA) {
       // A la mitad de las personas físicas les damos aval y/o cónyuge
       if (i % 2 === 0) {
         const [nombre, apellidoPaterno, apellidoMaterno] = randomFrom(nombresRelacionados, i);
         personas.push(
           personasRepo.create({
-            socioId: socio.id,
+            acreditadoId: acreditado.id,
             tipoRelacion: TipoRelacion.AVAL,
             nombre,
             apellidoPaterno,
@@ -379,7 +670,7 @@ async function run() {
         const [nombre, apellidoPaterno, apellidoMaterno] = randomFrom(nombresRelacionados, i + 1);
         personas.push(
           personasRepo.create({
-            socioId: socio.id,
+            acreditadoId: acreditado.id,
             tipoRelacion: TipoRelacion.CONYUGE,
             nombre,
             apellidoPaterno,
@@ -394,7 +685,7 @@ async function run() {
       const [nombreRL, apPaternoRL, apMaternoRL] = randomFrom(nombresRelacionados, i);
       personas.push(
         personasRepo.create({
-          socioId: socio.id,
+          acreditadoId: acreditado.id,
           tipoRelacion: TipoRelacion.REPRESENTANTE_LEGAL,
           nombre: nombreRL,
           apellidoPaterno: apPaternoRL,
@@ -407,7 +698,7 @@ async function run() {
         const [nombreBC, apPaternoBC, apMaternoBC] = randomFrom(nombresRelacionados, i + 2);
         personas.push(
           personasRepo.create({
-            socioId: socio.id,
+            acreditadoId: acreditado.id,
             tipoRelacion: TipoRelacion.BENEFICIARIO_CONTROLADOR,
             nombre: nombreBC,
             apellidoPaterno: apPaternoBC,

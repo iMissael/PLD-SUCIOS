@@ -2,15 +2,17 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuario } from './usuarios/entities/usuario.entity';
-import { Socio } from './socios/entities/socio.entity';
+import { Acreditado } from './acreditados/entities/acreditado.entity';
 import { PersonaRelacionada } from './personas-relacionadas/entities/persona-relacionada.entity';
 import { UsuariosModule } from './usuarios/usuarios.module';
-import { SociosModule } from './socios/socios.module';
+import { AcreditadosModule } from './acreditados/acreditados.module';
 import { PersonasRelacionadasModule } from './personas-relacionadas/personas-relacionadas.module';
 import { AuthModule } from './auth/auth.module';
+import { AppController } from './app.controller';
 import { MIGRACIONES } from './migrations';
 
 @Module({
+  controllers: [AppController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
@@ -20,7 +22,7 @@ import { MIGRACIONES } from './migrations';
       username: process.env.DB_USER ?? 'postgres',
       password: process.env.DB_PASSWORD ?? 'postgrespassword',
       database: process.env.DB_NAME ?? 'socios_db',
-      entities: [Usuario, Socio, PersonaRelacionada],
+      entities: [Usuario, Acreditado, PersonaRelacionada],
       // Nunca auto-sync (evita migraciones destructivas generadas automáticamente);
       // las migraciones escritas a mano se aplican al arrancar.
       synchronize: false,
@@ -28,7 +30,7 @@ import { MIGRACIONES } from './migrations';
       migrationsRun: true,
     }),
     UsuariosModule,
-    SociosModule,
+    AcreditadosModule,
     PersonasRelacionadasModule,
     AuthModule,
   ],

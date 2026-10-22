@@ -1,10 +1,10 @@
-import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString } from 'class-validator';
 import { TipoRelacion } from '../entities/persona-relacionada.entity';
 import { IsCurp } from '../../common/curp/is-curp.decorator';
 
 export class CreatePersonaRelacionadaDto {
-  @IsUUID()
-  socioId: string;
+  @IsString()
+  acreditadoId: string;
 
   @IsEnum(TipoRelacion)
   tipoRelacion: TipoRelacion;

@@ -1,6 +1,12 @@
-import { IsOptional, IsString, Matches } from 'class-validator';
+import { IsInt, IsOptional, IsString, Matches, Max, Min } from 'class-validator';
 
 export class DomicilioDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(38017)
+  localidadId?: number;
+
   @IsOptional()
   @IsString()
   calle?: string;

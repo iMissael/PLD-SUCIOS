@@ -1,7 +1,7 @@
 import { Column } from 'typeorm';
 
 /**
- * Domicilio desglosado, reutilizable por socios y usuarios (empleados).
+ * Domicilio desglosado, reutilizable por acreditados y usuarios (empleados).
  *
  * Se usa como columna embebida: `@Column(() => Domicilio, { prefix: false })`.
  * Los nombres de columna (domicilio_calle, domicilio_numero_exterior, ...) se
@@ -9,6 +9,9 @@ import { Column } from 'typeorm';
  * camelCase (domicilioCalle). En el JSON sale anidado como `domicilio: {...}`.
  */
 export class Domicilio {
+  @Column({ name: 'domicilio_localidad_id', type: 'int', nullable: true })
+  localidadId?: number;
+
   @Column({ name: 'domicilio_calle', nullable: true })
   calle?: string;
 
