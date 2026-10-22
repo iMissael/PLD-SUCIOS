@@ -23,6 +23,8 @@ export class AcreditadosService {
     const acreditado = this.acreditadosRepo.create({
       ...dto,
       codigo: dto.codigo ?? `ACR-${randomUUID()}`,
+      // Sin fechaAlta (o con null) se omite la columna y aplica el DEFAULT CURRENT_DATE.
+      fechaAlta: dto.fechaAlta ?? undefined,
     });
     this.validarCurp(acreditado);
     return this.acreditadosRepo.save(acreditado);

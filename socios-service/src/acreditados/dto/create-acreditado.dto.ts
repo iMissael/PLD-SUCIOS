@@ -150,6 +150,11 @@ export class CreateAcreditadoDto {
   @IsEmail()
   email?: string;
 
+  // Si no viene, la base de datos usa la fecha del día (CURRENT_DATE).
+  @IsOptional()
+  @IsDateString()
+  fechaAlta?: string;
+
   @IsOptional()
   @IsEnum(EstatusAcreditado)
   estatus?: EstatusAcreditado;
