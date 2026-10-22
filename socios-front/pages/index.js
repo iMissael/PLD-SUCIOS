@@ -18,8 +18,8 @@ const CAMPOS_ACREDITADO = [
   ['actividadEconomica', 'Actividad económica'],
   ['fechaInicioActividad', 'Fecha de inicio de actividad'],
   ['domicilio', 'Domicilio', formatearDomicilio],
-  ['creditoSolicitado', 'Crédito solicitado', formatearEstructura],
-  ['historialCrediticio', 'Historial crediticio', formatearEstructura],
+  ['creditoSolicitado', 'Crédito solicitado', formatearCreditoSolicitado],
+  ['historialCrediticio', 'Historial crediticio', formatearHistorialCrediticio],
   ['telefono', 'Teléfono'],
   ['email', 'Email'],
   ['fechaAlta', 'Fecha de alta'],
@@ -45,8 +45,33 @@ function formatearDomicilio(d) {
   return partes.join(', ');
 }
 
-function formatearEstructura(value) {
-  return value ? JSON.stringify(value, null, 2) : null;
+const formatoMoneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+function formatearMonto(monto) {
+  return typeof monto === 'number' ? formatoMoneda.format(monto) : monto;
+}
+
+function formatearCreditoSolicitado(c) {
+  if (!c) return null;
+  return [
+    `Referencia: ${c.referencia}`,
+    `Monto: ${formatearMonto(c.monto)}`,
+    `Tipo de crédito: ${c.tipoCreditoId}`,
+    `Origen de recursos: ${c.origenRecursosId}`,
+    `Destino de recursos: ${c.destinoRecursosId}`,
+    `Canal de pago: ${c.canalPagoId}`,
+  ].join('\n');
+}
+
+function formatearHistorialCrediticio(historial) {
+  if (!historial || historial.length === 0) return null;
+  return historial
+    .map(
+      (h) =>
+        `• ${h.referencia} — ${formatearMonto(h.monto)}, tipo ${h.tipoCreditoId}, ` +
+        `otorgado ${h.fechaOtorgamiento}, ${h.estatus}`,
+    )
+    .join('\n');
 }
 
 function valorMostrable(valor) {
