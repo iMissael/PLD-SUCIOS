@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const CAMPOS_SOCIO = [
+const CAMPOS_ACREDITADO = [
   ['tipoPersona', 'Tipo de persona'],
   ['rfc', 'RFC'],
   ['curp', 'CURP'],
   ['fechaNacimiento', 'Fecha de nacimiento'],
+  ['paisNacimiento', 'País de nacimiento'],
   ['nacionalidad', 'Nacionalidad'],
   ['zonaGeografica', 'Zona geográfica'],
   ['pais', 'País'],
@@ -15,7 +16,10 @@ const CAMPOS_SOCIO = [
   ['tiempoConstitucion', 'Tiempo de constitución (años)'],
   ['experienciaActividad', 'Experiencia en su actividad (años)'],
   ['actividadEconomica', 'Actividad económica'],
+  ['fechaInicioActividad', 'Fecha de inicio de actividad'],
   ['domicilio', 'Domicilio', formatearDomicilio],
+  ['creditoSolicitado', 'Crédito solicitado', formatearEstructura],
+  ['historialCrediticio', 'Historial crediticio', formatearEstructura],
   ['telefono', 'Teléfono'],
   ['email', 'Email'],
   ['fechaAlta', 'Fecha de alta'],
@@ -30,6 +34,7 @@ function formatearDomicilio(d) {
   if (!d) return null;
   const numero = [d.numeroExterior, d.numeroInterior && `Int. ${d.numeroInterior}`].filter(Boolean).join(' ');
   const partes = [
+    d.localidadId && `Localidad ID ${d.localidadId}`,
     [d.calle, numero].filter(Boolean).join(' '),
     d.colonia && `Col. ${d.colonia}`,
     d.codigoPostal && `C.P. ${d.codigoPostal}`,
@@ -40,6 +45,10 @@ function formatearDomicilio(d) {
   return partes.join(', ');
 }
 
+function formatearEstructura(value) {
+  return value ? JSON.stringify(value, null, 2) : null;
+}
+
 function valorMostrable(valor) {
   if (valor === null || valor === undefined || valor === '') return '—';
   if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
@@ -47,10 +56,10 @@ function valorMostrable(valor) {
 }
 
 export default function Home() {
-  const [email, setEmail] = useState('admin@socios-service.local');
+  const [email, setEmail] = useState('admin@acreditados-service.local');
   const [password, setPassword] = useState('Admin123!');
   const [token, setToken] = useState(null);
-  const [socios, setSocios] = useState([]);
+  const [acreditados, setAcreditados] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [expandidoId, setExpandidoId] = useState(null);
@@ -68,7 +77,7 @@ export default function Home() {
       if (!res.ok) throw new Error('Credenciales inválidas');
       const data = await res.json();
       setToken(data.accessToken);
-      await cargarSocios(data.accessToken);
+      await cargarAcreditados(data.accessToken);
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');
     } finally {
@@ -76,18 +85,18 @@ export default function Home() {
     }
   }
 
-  async function cargarSocios(accessToken) {
-    const res = await fetch(`${API_URL}/socios`, {
+  async function cargarAcreditados(accessToken) {
+    const res = await fetch(`${API_URL}/acreditados`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    if (!res.ok) throw new Error('No se pudieron cargar los socios');
+    if (!res.ok) throw new Error('No se pudieron cargar los acreditados');
     const data = await res.json();
-    setSocios(data);
+    setAcreditados(data);
   }
 
   function handleLogout() {
     setToken(null);
-    setSocios([]);
+    setAcreditados([]);
     setExpandidoId(null);
   }
 
@@ -97,7 +106,7 @@ export default function Home() {
 
   return (
     <main style={{ fontFamily: 'sans-serif', padding: 24, maxWidth: 1100, margin: '0 auto' }}>
-      <h1>socios-service — visor de socios</h1>
+      <h1>acreditados-service — visor de acreditados</h1>
 
       {!token ? (
         <form onSubmit={handleLogin} style={{ display: 'flex', gap: 8, alignItems: 'end', marginTop: 16 }}>
@@ -145,7 +154,7 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {socios.map((s) => (
+            {acreditados.map((s) => (
               <React.Fragment key={s.id}>
                 <tr>
                   <td>
@@ -171,13 +180,15 @@ export default function Home() {
                     <td colSpan={10} style={{ background: '#fafafa' }}>
                       <div style={{ display: 'flex', gap: 32, padding: 12, flexWrap: 'wrap' }}>
                         <div style={{ minWidth: 320 }}>
-                          <h3 style={{ marginTop: 0 }}>Datos completos del socio</h3>
+                          <h3 style={{ marginTop: 0 }}>Datos completos del acreditado</h3>
                           <table cellPadding="4">
                             <tbody>
-                              {CAMPOS_SOCIO.map(([campo, etiqueta, formatear]) => (
+                              {CAMPOS_ACREDITADO.map(([campo, etiqueta, formatear]) => (
                                 <tr key={campo}>
                                   <td style={{ fontWeight: 'bold', verticalAlign: 'top' }}>{etiqueta}</td>
-                                  <td>{valorMostrable(formatear ? formatear(s[campo]) : s[campo])}</td>
+                                  <td style={{ whiteSpace: 'pre-wrap' }}>
+                                    {valorMostrable(formatear ? formatear(s[campo]) : s[campo])}
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>

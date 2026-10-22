@@ -1,6 +1,6 @@
-# socios-front
+# acreditados-front
 
-Front mínimo en Next.js para visualizar los socios de `socios-service`.
+Front mínimo en Next.js para visualizar los acreditados de `acreditados-service`.
 Una sola página: login + tabla. Sin librerías extra, sin estilos elaborados.
 
 ## Puerto
@@ -16,9 +16,9 @@ pnpm install
 pnpm run dev
 ```
 
-Abre `http://localhost:4300`. Asegúrate de que `socios-service` esté
+Abre `http://localhost:4300`. Asegúrate de que `acreditados-service` esté
 corriendo en `http://localhost:3001` (o ajusta `NEXT_PUBLIC_API_URL` en
 `.env.local` si lo tienes en otro puerto).
 
 Usa las credenciales que ya sembraste en el backend, por ejemplo:
-`admin@socios-service.local` / `Admin123!`.
+`admin@acreditados-service.local` / `Admin123!`.

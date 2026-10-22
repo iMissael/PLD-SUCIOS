@@ -1,2 +1,2 @@
-# URL del backend socios-service (NestJS)
+# URL del backend acreditados-service (NestJS)
 NEXT_PUBLIC_API_URL=http://localhost:3001
